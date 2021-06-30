@@ -1,86 +1,131 @@
-
-
-import React, { Component } from 'react'
+'user strict';
+import React, { Component } from 'react';
 import axios from 'axios';
-import {Form,Button,Image} from 'react-bootstrap'
-// import Button from 'react-bootstrap/Button'
-// import Image from 'react-bootstrap/Image'
-import Alertmsg from './Alerttext';
+import { Card } from 'react-bootstrap';
+import Weather from './componant/Weather';
+import Movies from './componant/Movies';
 
-export class Forms extends Component {
 
-  constructor(props) {
+class App extends Component {
+  constructor(props){
     super(props);
-    this.state = {
-      displayName: "",
-      cityData: {},
-      display: false,
-      error: "",
-      alert: false
+    this.state={
+      displayName:' ',
+      latitude:' ', 
+      longitude: ' ' ,
+      weatherData:[],
+      show : false,
+      error:'',
+      moviesData:[]
     }
   }
-
-  updateCity = (e) => {
-    console.log(e.target.value);
+  HandleDisplayName=(e)=>{
     this.setState({
-      displayName: e.target.value,
-    });
-    console.log(this.state);
+      displayName:e.target.value
+    })
   }
-
-  getData = async (e) => {
+  SubmitForm=async (e)=>{
     e.preventDefault();
-    try {
-      const axiosData = await axios.get(`https://us1.locationiq.com/v1/search.php?key=pk.026b4205f25fc66edc3ea21cf7c30c05&city=${this.state.displayName}&format=json`)
-      console.log(axiosData);
-      this.setState({
-        cityData: axiosData.data[0],
-        display: true,
-        alert:false
-      })
-    } catch (error) {
-      this.setState({
-        error: error.message,
-        alert: true
-      })
-    }
-  }
-
+    try{
+    let axiResponse=await axios.get(`https://eu1.locationiq.com/v1/search.php?key=pk.026b4205f25fc66edc3ea21cf7c30c05&city=${this.state.displayName} &format=json`);
+    
+    let lat=axiResponse.data[0].lat;
+    let lon=axiResponse.data[0].lon;
+      let KeyLocal=process.env.REACT_APP_BACKEND_URL
+    let axiosWeaterResponce=await axios.get(`${KeyLocal}/weather?lat=${lat}&lon=${lon}`)
+    let axiosMoviesResponce=await axios.get(`${KeyLocal}/movies?city=${this.state.displayName}`)
+    this.setState({ 
+      displayName:axiResponse.data[0].display_name,
+      latitude:axiResponse.data[0].lat,
+      longitude : axiResponse.data[0].lon,
+      weatherData: axiosWeaterResponce.data,
+      show :!this.state.show,
+      error:'',
+      moviesData:axiosMoviesResponce.data
+           })
+          }
+          catch{
+            this.setState({
+              error:'Error map not found'
+            })
+          }
+        }
 
   render() {
     return (
       <div>
+        <form onSubmit={(e)=>{this.SubmitForm(e)}}>
+          <input type='text' onChange={(e)=>{this.HandleDisplayName(e)}} /> 
+          <button >Explore!</button>
+        </form>
+        
+        { this.state.show &&
+              <Card style={{ width: '25rem' }}>
+        
+        <Card.Body>
+          
+          <Card.Title>{this.state.displayName}</Card.Title>
+          <Card.Text>
+           latitude:   {this.state.latitude}<br/>
+          longitude:  {this.state.longitude }
+          </Card.Text>
+          <Card.Img variant="top" src={`https://maps.locationiq.com/v3/staticmap?key=pk.026b4205f25fc66edc3ea21cf7c30c05&center=${this.state.latitude},${this.state.longitude}&zoom=18&format=png`} width='500px' height='500px' />
+        </Card.Body>
+      </Card>  
+      
+    }
+    {
+      this.state.weatherData.map(value=>{
+        return  <Weather desc={value.description} date={value.date} />
+      })
+    }
+    {
+      this.state.moviesData.map(value=>{
+        return  <Movies average_votes={value.average_votes} image_url={value.image_url} 
+        popularity={value.popularity}   released_on={value.released_on}  total_votes={value.total_votes}/>
+      })
 
-        <Alertmsg
-          alert={this.state.alert}
-        />
-
-        <Form onSubmit={this.getData}>
-          <Form.Group className="mb-3" controlId="formBasicEmail" 	 >
-            <Form.Label>City Name</Form.Label>
-            <Form.Control type="text" placeholder="EX: AMMAN" onChange={this.updateCity} size={'sm'}  required/>
-          </Form.Group>
-          <Button variant="primary" type="submit" >
-            Explore!
-          </Button>
-        </Form>
-        {this.state.display &&
-          <div>
-            <p>
-              {this.state.cityData.display_name}
-            </p>
-            <p>
-              {`latitude: ${this.state.cityData.lat}, longitude: ${this.state.cityData.lon}`}
-            </p>
-            <Image src={`https://maps.locationiq.com/v3/staticmap?key=pk.026b4205f25fc66edc3ea21cf7c30c05&center=${this.state.cityData.lat},${this.state.cityData.lon}&zoom=10`} rounded/>
-          </div>
-        }
+    }
+   
+    {
+    <p>{this.state.error}</p>
+    }
+    
+  
+        
       </div>
     )
   }
 }
 
-export default Forms;
+export default App
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //         <Card style={{ width: '18rem' }}>
 
